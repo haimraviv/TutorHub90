@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TutorHub90 — Learning Management System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============== AUTH SCREEN ============== -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-header">
+    <div class="mark"><img src="logo.png" alt="TutorHub90" style="width:100%; height:100%; object-fit:contain; border-radius:6px;"></div>
+    <h1>TutorHub90</h1>
+    <p>Private tutoring, organized.</p>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" data-tab="login">Log In</div>
+      <div class="tab" data-tab="register-tutor">Join as Tutor</div>
+      <div class="tab" data-tab="register-student">Join as Student</div>
+    </div>
+
+    <div id="auth-alert"></div>
+
+    <!-- LOGIN -->
+    <form id="form-login" class="auth-form">
+      <div class="field">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" required autocomplete="current-password">
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary full-w" id="login-submit-btn">Log In</button>
+      </div>
+    </form>
+
+    <!-- REGISTER TUTOR -->
+    <form id="form-register-tutor" class="auth-form hidden">
+      <div class="field">
+        <label for="tutor-name">Full Name</label>
+        <input type="text" id="tutor-name" required>
+      </div>
+      <div class="field">
+        <label for="tutor-email">Email</label>
+        <input type="email" id="tutor-email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="tutor-password">Password</label>
+        <input type="password" id="tutor-password" required minlength="6" autocomplete="new-password">
+        <div class="hint">Minimum 6 characters.</div>
+      </div>
+      <div class="field" style="background:#F0F2F5; border-radius:6px; padding:14px;">
+        <div style="font-weight:700; margin-bottom:6px; color:var(--navy); font-size:14px;">Pricing</div>
+        <div class="hint" style="text-transform:none; font-size:13px; line-height:1.5; font-weight:400;">
+          $20/month base subscription, plus $2/month for each active student. You'll complete payment from your dashboard after registering.
+        </div>
+      </div>
+      <div class="field">
+        <details style="font-size:12.5px; color:var(--grey-muted); margin-bottom:10px;">
+          <summary style="cursor:pointer; font-weight:600; color:var(--navy);">Terms of Service (summary)</summary>
+          <div style="margin-top:8px; line-height:1.5;">
+            By using TutorHub90 you agree to pay the pricing shown above for as long as your account remains active,
+            billed monthly via our payment processor. Subscriptions can be cancelled at any time; access may be
+            suspended for non-payment. This is a placeholder summary — replace with your reviewed Terms of Service
+            before accepting real payments.
+          </div>
+        </details>
+        <label class="checkbox-row" style="padding:0;">
+          <input type="checkbox" id="tutor-terms-agree" required>
+          <span style="text-transform:none; font-weight:400; font-size:13.5px;">I agree to the Terms of Service and the pricing above.</span>
+        </label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary full-w" id="tutor-submit-btn">Create Tutor Account</button>
+      </div>
+    </form>
+
+    <!-- REGISTER STUDENT -->
+    <form id="form-register-student" class="auth-form hidden">
+      <div class="field">
+        <label for="student-name">Full Name</label>
+        <input type="text" id="student-name" required>
+      </div>
+      <div class="field">
+        <label for="student-email">Email</label>
+        <input type="email" id="student-email" required autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="student-password">Password</label>
+        <input type="password" id="student-password" required minlength="6" autocomplete="new-password">
+        <div class="hint">Minimum 6 characters.</div>
+      </div>
+      <div class="field">
+        <label for="student-tutor-id">Tutor's Email or UID</label>
+        <input type="text" id="student-tutor-id" required placeholder="e.g. tutor@example.com">
+        <div class="hint">Ask your tutor for their account email or UID so we can link your account. Your account will be <strong>pending</strong> until your tutor activates it.</div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary full-w" id="student-submit-btn">Create Student Account</button>
+      </div>
+    </form>
+  </div>
+  <footer class="note">TutorHub90 — a lightweight LMS for independent tutors.</footer>
+</div>
+
+<!-- ============== APP SHELL (post-login) ============== -->
+<div id="app-screen" class="hidden">
+  <div class="topbar">
+    <div class="brand"><span class="mark"><img src="logo.png" alt="TutorHub90" style="width:100%; height:100%; object-fit:contain; border-radius:4px;"></span> TutorHub90</div>
+    <div class="session-info">
+      <div id="course-switcher-wrap" class="switcher-wrap hidden">
+        <button class="btn btn-outline btn-small" id="course-switcher-btn">☰ <span id="current-tutor-label">Select tutor</span></button>
+        <div id="course-switcher-menu" class="switcher-menu hidden">
+          <div id="course-switcher-list"></div>
+          <div class="switcher-footer">
+            <button class="link-btn" id="show-add-tutor-form-btn" type="button">+ Add another tutor</button>
+            <form id="form-add-tutor" class="hidden" style="margin-top:8px;">
+              <input type="text" id="add-tutor-id" placeholder="Tutor's email or UID" style="margin-bottom:8px;">
+              <button type="submit" class="btn btn-primary btn-small full-w" id="add-tutor-btn">Send Request</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <span id="session-email"></span>
+      <span class="badge-role" id="session-role"></span>
+      <button class="btn btn-outline btn-small" id="logout-btn">Log Out</button>
+    </div>
+  </div>
+
+  <div class="page-wrap">
+    <div id="global-alert"></div>
+
+    <!-- TUTOR DASHBOARD -->
+    <div id="tutor-dashboard" class="hidden">
+      <div class="section-header">
+        <h2>Tutor Dashboard</h2>
+      </div>
+
+      <div class="card" style="margin-bottom:24px;">
+        <label style="margin-bottom:8px;">Your Tutor ID (share with students)</label>
+        <div class="uid-box">
+          <span id="tutor-uid-display"></span>
+          <button class="btn btn-ghost btn-small" id="copy-uid-btn">Copy</button>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Students list -->
+        <div class="card">
+          <div class="section-header">
+            <h2 style="font-size:17px;">My Students</h2>
+            <span class="count" id="student-count"></span>
+          </div>
+          <div class="list" id="students-list">
+            <div class="empty-state">Loading students…</div>
+          </div>
+        </div>
+
+        <!-- Course materials — a dedicated page under /materials -->
+        <div class="card">
+          <div class="section-header">
+            <h2 style="font-size:17px;">Course Materials</h2>
+          </div>
+          <p class="hint" style="margin:-4px 0 16px; text-transform:none;">Upload files or paste links, and assign them to your students, on their own page.</p>
+          <button type="button" class="btn btn-primary full-w" id="open-tutor-materials-btn">Open Materials</button>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:24px;">
+        <!-- Lessons list -->
+        <div class="card">
+          <div class="section-header">
+            <h2 style="font-size:17px;">Lessons</h2>
+            <span class="count" id="lesson-count"></span>
+          </div>
+          <div class="list" id="lessons-list">
+            <div class="empty-state">Loading lessons…</div>
+          </div>
+        </div>
+
+        <!-- Schedule a lesson form -->
+        <div class="card">
+          <div class="section-header">
+            <h2 style="font-size:17px;">Schedule a Lesson</h2>
+          </div>
+          <form id="form-schedule-lesson">
+            <div class="field">
+              <label for="lesson-student-select">Student</label>
+              <select id="lesson-student-select" required>
+                <option value="">Select a student…</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="lesson-subject">Subject</label>
+              <input type="text" id="lesson-subject" required placeholder="e.g. Algebra II">
+            </div>
+            <div class="field">
+              <label for="lesson-date">Date</label>
+              <input type="date" id="lesson-date" required>
+            </div>
+            <div class="field">
+              <label for="lesson-time">Time</label>
+              <input type="time" id="lesson-time" required>
+            </div>
+            <div class="field">
+              <label for="lesson-duration">Duration (minutes)</label>
+              <input type="text" id="lesson-duration" value="60" required>
+            </div>
+            <div class="field">
+              <label for="lesson-notes">Notes (optional)</label>
+              <textarea id="lesson-notes" rows="2" placeholder="Anything to prepare…"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary full-w" id="schedule-lesson-btn">Schedule Lesson</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="section-header">
+          <h2 style="font-size:17px;">Revenue by Student</h2>
+          <span class="count" id="revenue-total"></span>
+        </div>
+        <p class="hint" style="margin:-8px 0 16px; text-transform:none;">Set an hourly rate per student — revenue is calculated from confirmed lessons only.</p>
+        <div class="list" id="revenue-list">
+          <div class="empty-state">Loading revenue…</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="section-header">
+          <h2 style="font-size:17px;">Billing</h2>
+          <span class="status-pill" id="billing-status-pill"></span>
+        </div>
+        <div class="meta" style="margin-bottom:4px;">Base $20/mo + $2/mo per active student.</div>
+        <div style="font-size:26px; font-weight:700; color:var(--navy); margin:6px 0 16px;" id="billing-estimate">$20/mo</div>
+        <a id="billing-pay-btn" class="btn btn-primary full-w" target="_blank" rel="noopener" href="#">Subscribe via Stripe</a>
+        <p class="hint" style="margin-top:10px; text-transform:none;">After paying, your subscription will be activated by the site administrator.</p>
+      </div>
+    </div>
+
+    <!-- STUDENT DASHBOARD -->
+    <div id="student-dashboard" class="hidden">
+      <div class="section-header">
+        <h2>My Learning Materials</h2>
+      </div>
+      <p class="hint" id="student-context-subtitle" style="margin:-10px 0 18px; text-transform:none; font-weight:400;"></p>
+      <div id="student-no-enrollments" class="hidden alert alert-warn">
+        You're not linked to any tutor yet. Use the <strong>☰ menu</strong> in the top bar to add one.
+      </div>
+      <div id="student-pending-notice" class="hidden alert alert-warn">
+        Your connection with this tutor is <strong>pending approval</strong>. Once they activate it, your assigned materials will appear here.
+      </div>
+      <div id="student-materials-wrap" class="card hidden">
+        <p class="hint" style="margin:0 0 14px; text-transform:none;">Your assigned materials for this tutor are on their own page.</p>
+        <button type="button" class="btn btn-primary full-w" id="open-student-materials-btn">Open Materials</button>
+      </div>
+
+      <div id="student-lessons-wrap" class="grid-2 hidden" style="margin-top:24px;">
+        <!-- My lessons list -->
+        <div class="card">
+          <div class="section-header">
+            <h2 style="font-size:17px;">My Lessons</h2>
+            <span class="count" id="student-lesson-count"></span>
+          </div>
+          <div class="list" id="student-lessons-list">
+            <div class="empty-state">Loading lessons…</div>
+          </div>
+        </div>
+
+        <!-- Request a lesson form -->
+        <div class="card">
+          <div class="section-header">
+            <h2 style="font-size:17px;">Request a Lesson</h2>
+          </div>
+          <form id="form-request-lesson">
+            <div class="field">
+              <label for="req-lesson-subject">Subject</label>
+              <input type="text" id="req-lesson-subject" required placeholder="e.g. Algebra II">
+            </div>
+            <div class="field">
+              <label for="req-lesson-date">Preferred Date</label>
+              <input type="date" id="req-lesson-date" required>
+            </div>
+            <div class="field">
+              <label for="req-lesson-time">Preferred Time</label>
+              <input type="time" id="req-lesson-time" required>
+            </div>
+            <div class="field">
+              <label for="req-lesson-duration">Duration (minutes)</label>
+              <input type="text" id="req-lesson-duration" value="60" required>
+            </div>
+            <div class="field">
+              <label for="req-lesson-notes">Notes (optional)</label>
+              <textarea id="req-lesson-notes" rows="2" placeholder="What would you like to cover?"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary full-w" id="request-lesson-btn">Request Lesson</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// =====================================================================
+// FIREBASE CONFIGURATION
+// Paste your Firebase project config below. Get this from:
+// Firebase Console > Project Settings > General > Your apps > SDK setup
+// =====================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAg-Dx8YM8b6QsbQA9Dv-fsE4zk8S0U8vw",
+  authDomain: "tutorhub90-faf83.firebaseapp.com",
+  projectId: "tutorhub90-faf83",
+  storageBucket: "tutorhub90-faf83.firebasestorage.app",
+  messagingSenderId: "693714545924",
+  appId: "1:693714545924:web:deb6fff4d23b112ca2f451",
+  measurementId: "G-34G71QNPZM"
+};
+
+// =====================================================================
+// STRIPE PAYMENT LINK — create a Payment Link (no code needed) in your
+// Stripe Dashboard for the $20/month base subscription, then paste its
+// URL here. See setup notes for details.
+// =====================================================================
+const STRIPE_PAYMENT_LINK_URL = "";
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc, updateDoc, collection,
+  query, where, getDocs, addDoc, serverTimestamp, orderBy
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// =====================================================================
+// STATE
+// =====================================================================
+let currentUser = null;      // Firebase Auth user object
+let currentUserDoc = null;   // Firestore users/{uid} document data
+let cachedStudents = [];     // For tutor: enrollments (students) assigned to them
+let cachedEnrollments = [];  // For student: all of their tutor relationships ("courses")
+let currentEnrollment = null; // For student: the currently selected tutor context
+
+// =====================================================================
+// DOM SHORTCUTS
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+
+function showAlert(containerId, message, type = "error") {
+  const container = $(containerId);
+  if (!container) return;
+  container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+}
+function clearAlert(containerId) {
+  const container = $(containerId);
+  if (container) container.innerHTML = "";
+}
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+function setBtnLoading(btn, loading, label) {
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.innerHTML = loading ? `<span class="loading-spin"></span> Please wait…` : label;
+}
+
+// =====================================================================
+// AUTH SCREEN — TAB SWITCHING
+// =====================================================================
+document.querySelectorAll("#auth-screen .tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll("#auth-screen .tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".auth-form").forEach(f => f.classList.add("hidden"));
+    tab.classList.add("active");
+    $(`form-${tab.dataset.tab}`).classList.remove("hidden");
+    clearAlert("auth-alert");
+  });
+});
+
+// =====================================================================
+// REGISTER — TUTOR
+// =====================================================================
+$("form-register-tutor").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert("auth-alert");
+  const name = $("tutor-name").value.trim();
+  const email = $("tutor-email").value.trim();
+  const password = $("tutor-password").value;
+  const agreedToTerms = $("tutor-terms-agree").checked;
+  const btn = $("tutor-submit-btn");
+
+  if (!agreedToTerms) {
+    showAlert("auth-alert", "Please agree to the Terms of Service and pricing to continue.");
+    return;
+  }
+
+  setBtnLoading(btn, true, "Create Tutor Account");
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+
+    // users/{uid} — canonical account + role record
+    await setDoc(doc(db, "users", uid), {
+      uid, email, name, role: "tutor", status: "active", disabled: false,
+      billing: {
+        basePrice: 20, perStudentPrice: 2, currency: "USD",
+        subscriptionStatus: "pending", agreedToTermsAt: serverTimestamp()
+      },
+      createdAt: serverTimestamp()
+    });
+
+    // tutors/{uid} — tutor-specific profile record
+    await setDoc(doc(db, "tutors", uid), {
+      uid, email, name, createdAt: serverTimestamp()
+    });
+
+    // onAuthStateChanged will pick up the new session and route to dashboard
+  } catch (err) {
+    setBtnLoading(btn, false, "Create Tutor Account");
+    showAlert("auth-alert", friendlyAuthError(err));
+  }
+});
+
+// =====================================================================
+// SHARED — resolve a tutor from an email or UID they gave you
+// =====================================================================
+async function resolveTutor(identifier) {
+  // Try treating the input as a direct UID first.
+  const directTutorSnap = await getDoc(doc(db, "tutors", identifier));
+  if (directTutorSnap.exists()) {
+    const t = directTutorSnap.data();
+    return { uid: identifier, name: t.name || t.email, email: t.email };
+  }
+  // Fall back to looking up by email in the users collection.
+  const q = query(
+    collection(db, "users"),
+    where("email", "==", identifier),
+    where("role", "==", "tutor")
+  );
+  const snap = await getDocs(q);
+  if (!snap.empty) {
+    const t = snap.docs[0].data();
+    return { uid: snap.docs[0].id, name: t.name || t.email, email: t.email };
+  }
+  return null;
+}
+
+// =====================================================================
+// REGISTER — STUDENT
+// =====================================================================
+$("form-register-student").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert("auth-alert");
+  const name = $("student-name").value.trim();
+  const email = $("student-email").value.trim();
+  const password = $("student-password").value;
+  const tutorIdentifier = $("student-tutor-id").value.trim();
+  const btn = $("student-submit-btn");
+
+  setBtnLoading(btn, true, "Create Student Account");
+  try {
+    // Step 1: resolve the tutor from either a direct UID or an email.
+    const tutor = await resolveTutor(tutorIdentifier);
+    if (!tutor) {
+      throw new Error("NO_TUTOR_FOUND");
+    }
+
+    // Step 2: create the Auth account.
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const uid = cred.user.uid;
+
+    // Step 3: create the canonical user record (no single tutor/status here —
+    // a student can be linked to multiple tutors via separate enrollments).
+    await setDoc(doc(db, "users", uid), {
+      uid, email, name, role: "student", disabled: false,
+      createdAt: serverTimestamp()
+    });
+
+    // Step 4: create the enrollment ("course") linking this student to this
+    // tutor — pending until the tutor activates it. Doc ID is composite so a
+    // student can hold one enrollment per tutor, and many enrollments total.
+    await setDoc(doc(db, "enrollments", `${uid}_${tutor.uid}`), {
+      studentId: uid, studentName: name, studentEmail: email,
+      tutorId: tutor.uid, tutorName: tutor.name, tutorEmail: tutor.email,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+
+    // onAuthStateChanged will route to the (pending) student dashboard
+  } catch (err) {
+    setBtnLoading(btn, false, "Create Student Account");
+    if (err.message === "NO_TUTOR_FOUND") {
+      showAlert("auth-alert", "We couldn't find a tutor with that email or UID. Double-check it with your tutor and try again.");
+    } else {
+      showAlert("auth-alert", friendlyAuthError(err));
+    }
+  }
+});
+
+// =====================================================================
+// LOGIN
+// =====================================================================
+$("form-login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert("auth-alert");
+  const email = $("login-email").value.trim();
+  const password = $("login-password").value;
+  const btn = $("login-submit-btn");
+
+  setBtnLoading(btn, true, "Log In");
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged handles routing
+  } catch (err) {
+    setBtnLoading(btn, false, "Log In");
+    showAlert("auth-alert", friendlyAuthError(err));
+  }
+});
+
+function friendlyAuthError(err) {
+  const code = err.code || "";
+  if (code.includes("email-already-in-use")) return "That email is already registered. Try logging in instead.";
+  if (code.includes("invalid-email")) return "That email address doesn't look valid.";
+  if (code.includes("weak-password")) return "Password must be at least 6 characters.";
+  if (code.includes("user-not-found") || code.includes("wrong-password") || code.includes("invalid-credential")) return "Incorrect email or password.";
+  if (code.includes("network-request-failed")) return "Network error — check your connection and Firebase config.";
+  if (code.includes("api-key-not-valid") || code.includes("invalid-api-key")) return "Firebase isn't configured yet — paste your project keys into the firebaseConfig object in the code.";
+  return err.message || "Something went wrong. Please try again.";
+}
+
+// =====================================================================
+// LOGOUT
+// =====================================================================
+$("logout-btn").addEventListener("click", async () => {
+  await signOut(auth);
+});
+
+// =====================================================================
+// AUTH STATE ROUTER
+// =====================================================================
+let suppressNextAlertClear = false; // guards against signOut() wiping a message we just showed
+
+onAuthStateChanged(auth, async (user) => {
+  if (suppressNextAlertClear) {
+    suppressNextAlertClear = false;
+  } else {
+    clearAlert("auth-alert");
+    clearAlert("global-alert");
+  }
+
+  if (!user) {
+    currentUser = null;
+    currentUserDoc = null;
+    currentEnrollment = null;
+    cachedEnrollments = [];
+    $("auth-screen").classList.remove("hidden");
+    $("app-screen").classList.add("hidden");
+    $("course-switcher-wrap").classList.add("hidden");
+    $("course-switcher-menu").classList.add("hidden");
+    // reset forms
+    document.querySelectorAll(".auth-form").forEach(f => f.reset());
+    resetSubmitButtons();
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    const userSnap = await getDoc(doc(db, "users", user.uid));
+    if (!userSnap.exists()) {
+      showAlert("auth-alert", "This account is missing its account record in the database (likely from an earlier signup that didn't fully complete). Please contact support, or use a different email to register again.");
+      suppressNextAlertClear = true;
+      await signOut(auth);
+      return;
+    }
+    currentUserDoc = userSnap.data();
+
+    if (currentUserDoc.disabled === true) {
+      showAlert("auth-alert", "This account has been suspended by the site administrator. Please contact support for more information.");
+      suppressNextAlertClear = true;
+      await signOut(auth);
+      return;
+    }
+  } catch (err) {
+    showAlert("auth-alert", "Couldn't load your account. Check your Firestore rules/config and try again.");
+    return;
+  }
+
+  // Show app shell
+  $("auth-screen").classList.add("hidden");
+  $("app-screen").classList.remove("hidden");
+  $("session-email").textContent = currentUserDoc.email;
+  $("session-role").textContent = currentUserDoc.role;
+
+  $("tutor-dashboard").classList.add("hidden");
+  $("student-dashboard").classList.add("hidden");
+  $("course-switcher-wrap").classList.add("hidden");
+
+  if (currentUserDoc.role === "tutor") {
+    $("tutor-dashboard").classList.remove("hidden");
+    $("tutor-uid-display").textContent = user.uid;
+    await loadTutorDashboard();
+  } else if (currentUserDoc.role === "student") {
+    $("student-dashboard").classList.remove("hidden");
+    $("course-switcher-wrap").classList.remove("hidden");
+    await initStudentContext();
+  }
+});
+
+function resetSubmitButtons() {
+  setBtnLoading($("login-submit-btn"), false, "Log In");
+  setBtnLoading($("tutor-submit-btn"), false, "Create Tutor Account");
+  setBtnLoading($("student-submit-btn"), false, "Create Student Account");
+}
+
+// =====================================================================
+// COPY TUTOR UID
+// =====================================================================
+$("copy-uid-btn").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(currentUser.uid);
+    $("copy-uid-btn").textContent = "Copied!";
+    setTimeout(() => { $("copy-uid-btn").textContent = "Copy"; }, 1500);
+  } catch {
+    /* clipboard permissions can fail silently; no-op */
+  }
+});
+
+// =====================================================================
+// COURSE SWITCHER (student — switch between tutors, or add a new one)
+// =====================================================================
+$("course-switcher-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("course-switcher-menu").classList.toggle("hidden");
+});
+document.addEventListener("click", (e) => {
+  const menu = $("course-switcher-menu");
+  const wrap = $("course-switcher-wrap");
+  if (!menu.classList.contains("hidden") && !wrap.contains(e.target)) {
+    menu.classList.add("hidden");
+  }
+});
+$("show-add-tutor-form-btn").addEventListener("click", () => {
+  $("form-add-tutor").classList.toggle("hidden");
+});
+$("form-add-tutor").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert("global-alert");
+  const btn = $("add-tutor-btn");
+  const identifier = $("add-tutor-id").value.trim();
+  if (!identifier) return;
+
+  setBtnLoading(btn, true, "Send Request");
+  try {
+    const tutor = await resolveTutor(identifier);
+    if (!tutor) {
+      showAlert("global-alert", "We couldn't find a tutor with that email or UID.", "warn");
+      return;
+    }
+    const enrollmentId = `${currentUser.uid}_${tutor.uid}`;
+    if (cachedEnrollments.some(en => en.id === enrollmentId)) {
+      showAlert("global-alert", "You're already linked to that tutor.", "warn");
+      return;
+    }
+    await setDoc(doc(db, "enrollments", enrollmentId), {
+      studentId: currentUser.uid, studentName: currentUserDoc.name || currentUserDoc.email, studentEmail: currentUserDoc.email,
+      tutorId: tutor.uid, tutorName: tutor.name, tutorEmail: tutor.email,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    $("form-add-tutor").reset();
+    $("form-add-tutor").classList.add("hidden");
+    $("course-switcher-menu").classList.add("hidden");
+    await initStudentContext(enrollmentId);
+    showAlert("global-alert", `Request sent to ${tutor.name}.`, "success");
+  } catch (err) {
+    showAlert("global-alert", `Couldn't send request: ${escapeHtml(err.message)}`);
+  } finally {
+    setBtnLoading(btn, false, "Send Request");
+  }
+});
+
+// =====================================================================
+// TUTOR DASHBOARD
+// =====================================================================
+async function loadTutorDashboard() {
+  await loadMyStudents();
+  await Promise.all([loadTutorLessons(), loadRevenueData()]);
+  renderBillingCard();
+}
+
+function renderBillingCard() {
+  const activeCount = cachedStudents.filter(s => s.status === "active").length;
+  const billing = currentUserDoc.billing || { basePrice: 20, perStudentPrice: 2, subscriptionStatus: "pending" };
+  const estimate = billing.basePrice + activeCount * billing.perStudentPrice;
+
+  $("billing-estimate").textContent = `$${estimate}/mo`;
+
+  const statusPill = $("billing-status-pill");
+  const status = billing.subscriptionStatus || "pending";
+  statusPill.textContent = status;
+  statusPill.className = `status-pill status-${status === "active" ? "active" : "pending"}`;
+
+  const payBtn = $("billing-pay-btn");
+  if (STRIPE_PAYMENT_LINK_URL) {
+    payBtn.href = STRIPE_PAYMENT_LINK_URL;
+    payBtn.classList.remove("btn-ghost");
+    payBtn.classList.add("btn-primary");
+  } else {
+    payBtn.href = "#";
+    payBtn.textContent = "Payment link not set up yet";
+    payBtn.classList.add("btn-ghost");
+    payBtn.classList.remove("btn-primary");
+    payBtn.addEventListener("click", (e) => e.preventDefault());
+  }
+}
+
+async function loadMyStudents() {
+  const listEl = $("students-list");
+  listEl.innerHTML = `<div class="empty-state">Loading students…</div>`;
+  try {
+    const q = query(collection(db, "enrollments"), where("tutorId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+    cachedStudents = snap.docs.map(d => {
+      const data = d.data();
+      return {
+        enrollmentId: d.id,
+        studentId: data.studentId,
+        name: data.studentName,
+        email: data.studentEmail,
+        status: data.status,
+        hourlyRate: data.hourlyRate || 0
+      };
+    });
+
+    $("student-count").textContent = `${cachedStudents.length} total`;
+
+    if (cachedStudents.length === 0) {
+      listEl.innerHTML = `<div class="empty-state">No students yet. Share your Tutor ID above so students can link their account to you.</div>`;
+    } else {
+      listEl.innerHTML = cachedStudents.map(s => `
+        <div class="list-item">
+          <div>
+            <div class="title">${escapeHtml(s.name || s.email)}</div>
+            <div class="meta">${escapeHtml(s.email)}</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="status-pill status-${s.status === 'active' ? 'active' : 'pending'}">${escapeHtml(s.status)}</span>
+            ${s.status !== 'active' ? `<button class="btn btn-ghost btn-small activate-btn" data-enrollment-id="${s.enrollmentId}">Activate</button>` : ''}
+          </div>
+        </div>
+      `).join("");
+
+      listEl.querySelectorAll(".activate-btn").forEach(btn => {
+        btn.addEventListener("click", () => activateStudent(btn.dataset.enrollmentId, btn));
+      });
+    }
+
+    // If a "no active students" state exists, nothing extra to refresh here —
+    // the Materials page (its own document) loads its own student list.
+    renderLessonStudentSelect();
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-state">Couldn't load students. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function activateStudent(enrollmentId, btn) {
+  btn.disabled = true;
+  btn.textContent = "Activating…";
+  try {
+    await updateDoc(doc(db, "enrollments", enrollmentId), { status: "active" });
+    await loadMyStudents();
+  } catch (err) {
+    showAlert("global-alert", `Couldn't activate student: ${escapeHtml(err.message)}`);
+    btn.disabled = false;
+    btn.textContent = "Activate";
+  }
+}
+
+function renderLessonStudentSelect() {
+  const select = $("lesson-student-select");
+  const activeStudents = cachedStudents.filter(s => s.status === "active");
+  const previousValue = select.value;
+  select.innerHTML = `<option value="">Select a student…</option>` + activeStudents.map(s =>
+    `<option value="${s.studentId}">${escapeHtml(s.name || s.email)}</option>`
+  ).join("");
+  if (activeStudents.some(s => s.studentId === previousValue)) select.value = previousValue;
+}
+
+// =====================================================================
+// COURSE MATERIALS — navigates to the dedicated /materials page
+// =====================================================================
+$("open-tutor-materials-btn").addEventListener("click", () => {
+  window.location.href = "materials/index.html";
+});
+
+// =====================================================================
+// TUTOR — LESSONS (schedule directly, or approve/deny student requests)
+// =====================================================================
+$("form-schedule-lesson").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert("global-alert");
+  const btn = $("schedule-lesson-btn");
+  const studentId = $("lesson-student-select").value;
+  const subject = $("lesson-subject").value.trim();
+  const date = $("lesson-date").value;
+  const time = $("lesson-time").value;
+  const duration = $("lesson-duration").value.trim();
+  const notes = $("lesson-notes").value.trim();
+
+  if (!studentId) {
+    showAlert("global-alert", "Select a student to schedule this lesson with.", "warn");
+    return;
+  }
+
+  const student = cachedStudents.find(s => s.studentId === studentId);
+
+  setBtnLoading(btn, true, "Schedule Lesson");
+  try {
+    await addDoc(collection(db, "lessons"), {
+      tutorId: currentUser.uid,
+      studentId,
+      studentName: student ? (student.name || student.email) : "",
+      tutorName: currentUserDoc.name || currentUserDoc.email,
+      subject, date, time, duration, notes,
+      status: "confirmed",
+      requestedBy: "tutor",
+      createdAt: serverTimestamp()
+    });
+    $("form-schedule-lesson").reset();
+    $("lesson-duration").value = "60";
+    await loadTutorLessons();
+    showAlert("global-alert", "Lesson scheduled.", "success");
+  } catch (err) {
+    showAlert("global-alert", `Couldn't schedule lesson: ${escapeHtml(err.message)}`);
+  } finally {
+    setBtnLoading(btn, false, "Schedule Lesson");
+  }
+});
+
+async function loadTutorLessons() {
+  const listEl = $("lessons-list");
+  listEl.innerHTML = `<div class="empty-state">Loading lessons…</div>`;
+  try {
+    const q = query(collection(db, "lessons"), where("tutorId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+    const lessons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Pending requests first, then soonest-dated lessons.
+    lessons.sort((a, b) => {
+      if (a.status === "pending" && b.status !== "pending") return -1;
+      if (b.status === "pending" && a.status !== "pending") return 1;
+      return `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`);
+    });
+
+    $("lesson-count").textContent = `${lessons.length} total`;
+
+    if (lessons.length === 0) {
+      listEl.innerHTML = `<div class="empty-state">No lessons scheduled or requested yet.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = lessons.map(l => `
+      <div class="list-item">
+        <div>
+          <div class="title">${escapeHtml(l.subject)} — ${escapeHtml(l.studentName)}</div>
+          <div class="meta">${escapeHtml(l.date)} at ${escapeHtml(l.time)} · ${escapeHtml(String(l.duration))} min${l.notes ? " · " + escapeHtml(l.notes) : ""}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="status-pill status-${l.status}">${escapeHtml(l.status)}</span>
+          ${l.status === "pending" ? `
+            <button class="btn btn-primary btn-small approve-lesson-btn" data-id="${l.id}">Approve</button>
+            <button class="btn btn-ghost btn-small deny-lesson-btn" data-id="${l.id}">Deny</button>
+          ` : ""}
+        </div>
+      </div>
+    `).join("");
+
+    listEl.querySelectorAll(".approve-lesson-btn").forEach(btn => {
+      btn.addEventListener("click", () => respondToLesson(btn.dataset.id, "confirmed", btn));
+    });
+    listEl.querySelectorAll(".deny-lesson-btn").forEach(btn => {
+      btn.addEventListener("click", () => respondToLesson(btn.dataset.id, "denied", btn));
+    });
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-state">Couldn't load lessons. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function respondToLesson(lessonId, newStatus, btn) {
+  btn.disabled = true;
+  try {
+    await updateDoc(doc(db, "lessons", lessonId), { status: newStatus });
+    await loadTutorLessons();
+  } catch (err) {
+    showAlert("global-alert", `Couldn't update lesson: ${escapeHtml(err.message)}`);
+    btn.disabled = false;
+  }
+}
+
+// =====================================================================
+// TUTOR — REVENUE BY STUDENT (from confirmed lessons × hourly rate)
+// =====================================================================
+async function loadRevenueData() {
+  const listEl = $("revenue-list");
+  listEl.innerHTML = `<div class="empty-state">Loading revenue…</div>`;
+  try {
+    const q = query(collection(db, "lessons"), where("tutorId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+    const confirmedLessons = snap.docs.map(d => d.data()).filter(l => l.status === "confirmed");
+
+    const byStudent = {}; // studentId -> { minutes, count }
+    confirmedLessons.forEach(l => {
+      const mins = parseFloat(l.duration) || 0;
+      if (!byStudent[l.studentId]) byStudent[l.studentId] = { minutes: 0, count: 0 };
+      byStudent[l.studentId].minutes += mins;
+      byStudent[l.studentId].count += 1;
+    });
+
+    const rows = cachedStudents.map(s => {
+      const agg = byStudent[s.studentId] || { minutes: 0, count: 0 };
+      const hours = agg.minutes / 60;
+      const rate = s.hourlyRate || 0;
+      return { ...s, hours, lessonCount: agg.count, revenue: hours * rate };
+    });
+
+    rows.sort((a, b) => b.revenue - a.revenue);
+    const maxRevenue = Math.max(1, ...rows.map(r => r.revenue));
+    const totalRevenue = rows.reduce((sum, r) => sum + r.revenue, 0);
+
+    $("revenue-total").textContent = `Total: ₪${totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+    if (rows.length === 0) {
+      listEl.innerHTML = `<div class="empty-state">No students yet.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = rows.map(r => `
+      <div class="list-item" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+          <div class="title">${escapeHtml(r.name || r.email)}</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="hint" style="text-transform:none;">₪/hr</span>
+            <input type="number" class="revenue-rate-input" data-enrollment-id="${r.enrollmentId}" value="${r.hourlyRate || 0}" min="0" step="1" style="width:80px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:13px;">
+            <button type="button" class="btn btn-ghost btn-small save-rate-btn" data-enrollment-id="${r.enrollmentId}">Save</button>
+          </div>
+        </div>
+        <div class="meta">${r.hours.toFixed(1)} hrs · ${r.lessonCount} confirmed lesson${r.lessonCount === 1 ? "" : "s"}</div>
+        <div class="progress-track"><div class="progress-fill" style="width:${(r.revenue / maxRevenue * 100).toFixed(0)}%;"></div></div>
+        <div style="text-align:right; font-weight:700; color:var(--navy); font-size:14px;">₪${r.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+      </div>
+    `).join("");
+
+    listEl.querySelectorAll(".save-rate-btn").forEach(btn => {
+      btn.addEventListener("click", () => saveHourlyRate(btn.dataset.enrollmentId, btn));
+    });
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-state">Couldn't load revenue data. ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function saveHourlyRate(enrollmentId, btn) {
+  const input = document.querySelector(`.revenue-rate-input[data-enrollment-id="${enrollmentId}"]`);
+  const rate = parseFloat(input.value) || 0;
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+  try {
+    await updateDoc(doc(db, "enrollments", enrollmentId), { hourlyRate: rate });
+    const s = cachedStudents.find(st => st.enrollmentId === enrollmentId);
+    if (s) s.hourlyRate = rate;
+    await loadRevenueData();
+  } catch (err) {
+    showAlert("global-alert", `Couldn't save rate: ${escapeHtml(err.message)}`);
+    btn.disabled = false;
+    btn.textContent = "Save";
+  }
+}
+
+// =====================================================================
+// STUDENT DASHBOARD — multi-tutor context (enrollments = "courses")
+// =====================================================================
+async function initStudentContext(preferredEnrollmentId) {
+  try {
+    const q = query(collection(db, "enrollments"), where("studentId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+    cachedEnrollments = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (err) {
+    showAlert("global-alert", `Couldn't load your tutors: ${escapeHtml(err.message)}`);
+    cachedEnrollments = [];
+  }
+
+  if (cachedEnrollments.length === 0) {
+    currentEnrollment = null;
+    $("student-no-enrollments").classList.remove("hidden");
+    $("student-pending-notice").classList.add("hidden");
+    $("student-materials-wrap").classList.add("hidden");
+    $("student-lessons-wrap").classList.add("hidden");
+    $("student-context-subtitle").textContent = "";
+    $("current-tutor-label").textContent = "No tutor yet";
+    $("course-switcher-list").innerHTML = "";
+    return;
+  }
+
+  $("student-no-enrollments").classList.add("hidden");
+
+  // Pick which enrollment to show: an explicit request, else the last one
+  // this browser remembered, else the first active one, else just the first.
+  const storageKey = `th90_last_enrollment_${currentUser.uid}`;
+  const remembered = preferredEnrollmentId || localStorage.getItem(storageKey);
+  currentEnrollment =
+    cachedEnrollments.find(en => en.id === remembered) ||
+    cachedEnrollments.find(en => en.status === "active") ||
+    cachedEnrollments[0];
+
+  renderCourseSwitcher();
+  await loadStudentDashboardContent();
+}
+
+function renderCourseSwitcher() {
+  $("current-tutor-label").textContent = currentEnrollment.tutorName || currentEnrollment.tutorEmail;
+
+  $("course-switcher-list").innerHTML = cachedEnrollments.map(en => `
+    <div class="switcher-item ${en.id === currentEnrollment.id ? 'active-context' : ''}" data-enrollment-id="${en.id}">
+      <span>${escapeHtml(en.tutorName || en.tutorEmail)}</span>
+      <span class="status-pill status-${en.status === 'active' ? 'active' : 'pending'}">${escapeHtml(en.status)}</span>
+    </div>
+  `).join("");
+
+  document.querySelectorAll(".switcher-item").forEach(item => {
+    item.addEventListener("click", () => {
+      $("course-switcher-menu").classList.add("hidden");
+      selectEnrollment(item.dataset.enrollmentId);
+    });
+  });
+}
+
+async function selectEnrollment(enrollmentId) {
+  const enrollment = cachedEnrollments.find(en => en.id === enrollmentId);
+  if (!enrollment) return;
+  currentEnrollment = enrollment;
+  localStorage.setItem(`th90_last_enrollment_${currentUser.uid}`, enrollmentId);
+  renderCourseSwitcher();
+  await loadStudentDashboardContent();
+}
+
+async function loadStudentDashboardContent() {
+  const pendingNotice = $("student-pending-notice");
+  const wrap = $("student-materials-wrap");
+  const lessonsWrap = $("student-lessons-wrap");
+
+  $("student-context-subtitle").textContent = `Showing materials & lessons with ${currentEnrollment.tutorName || currentEnrollment.tutorEmail}`;
+
+  if (currentEnrollment.status !== "active") {
+    pendingNotice.classList.remove("hidden");
+    wrap.classList.add("hidden");
+    lessonsWrap.classList.add("hidden");
+    return;
+  }
+
+  pendingNotice.classList.add("hidden");
+  wrap.classList.remove("hidden");
+  lessonsWrap.classList.remove("hidden");
+  loadStudentLessons();
+}
+
+// =====================================================================
+// COURSE MATERIALS — navigates to the dedicated /materials page,
+// carrying the currently-selected tutor context via the URL.
+// =====================================================================
+$("open-student-materials-btn").addEventListener("click", () => {
+  if (!currentEnrollment) return;
+  window.location.href = `materials/index.html?enrollmentId=${encodeURIComponent(currentEnrollment.id)}`;
+});
+
+// =====================================================================
+// STUDENT — LESSONS (request a lesson, view status, scoped to current tutor)
+// =====================================================================
+$("form-request-lesson").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  clearAlert("global-alert");
+  const btn = $("request-lesson-btn");
+  const subject = $("req-lesson-subject").value.trim();
+  const date = $("req-lesson-date").value;
+  const time = $("req-lesson-time").value;
+  const duration = $("req-lesson-duration").value.trim();
+  const notes = $("req-lesson-notes").value.trim();
+
+  if (!currentEnrollment) {
+    showAlert("global-alert", "No tutor is selected. Use the ☰ menu to link one first.");
+    return;
+  }
+  const tutorId = currentEnrollment.tutorId;
+
+  setBtnLoading(btn, true, "Request Lesson");
+  try {
+    await addDoc(collection(db, "lessons"), {
+      tutorId,
+      studentId: currentUser.uid,
+      studentName: currentUserDoc.name || currentUserDoc.email,
+      tutorName: currentEnrollment.tutorName || "",
+      subject, date, time, duration, notes,
+      status: "pending",
+      requestedBy: "student",
+      createdAt: serverTimestamp()
+    });
+    $("form-request-lesson").reset();
+    $("req-lesson-duration").value = "60";
+    await loadStudentLessons();
+    showAlert("global-alert", "Lesson request sent to your tutor.", "success");
+  } catch (err) {
+    showAlert("global-alert", `Couldn't send request: ${escapeHtml(err.message)}`);
+  } finally {
+    setBtnLoading(btn, false, "Request Lesson");
+  }
+});
+
+async function loadStudentLessons() {
+  const listEl = $("student-lessons-list");
+  listEl.innerHTML = `<div class="empty-state">Loading lessons…</div>`;
+  try {
+    const q = query(collection(db, "lessons"), where("studentId", "==", currentUser.uid));
+    const snap = await getDocs(q);
+    const lessons = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(l => l.tutorId === currentEnrollment.tutorId);
+    lessons.sort((a, b) => {
+      if (a.status === "pending" && b.status !== "pending") return -1;
+      if (b.status === "pending" && a.status !== "pending") return 1;
+      return `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`);
+    });
+
+    $("student-lesson-count").textContent = `${lessons.length} total`;
+
+    if (lessons.length === 0) {
+      listEl.innerHTML = `<div class="empty-state">No lessons scheduled or requested yet.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = lessons.map(l => `
+      <div class="list-item">
+        <div>
+          <div class="title">${escapeHtml(l.subject)}</div>
+          <div class="meta">${escapeHtml(l.date)} at ${escapeHtml(l.time)} · ${escapeHtml(String(l.duration))} min${l.notes ? " · " + escapeHtml(l.notes) : ""}</div>
+        </div>
+        <span class="status-pill status-${l.status}">${escapeHtml(l.status)}</span>
+      </div>
+    `).join("");
+  } catch (err) {
+    listEl.innerHTML = `<div class="empty-state">Couldn't load lessons. ${escapeHtml(err.message)}</div>`;
+  }
+}
+</script>
+</body>
+</html>
