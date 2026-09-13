@@ -112,23 +112,25 @@
 <script type="module">
 // =====================================================================
 // FIREBASE CONFIGURATION — same project as the main app.
+// Load configuration from environment variables.
+// See .env.example for required variables.
 // =====================================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyAg-Dx8YM8b6QsbQA9Dv-fsE4zk8S0U8vw",
-  authDomain: "tutorhub90-faf83.firebaseapp.com",
-  projectId: "tutorhub90-faf83",
-  storageBucket: "tutorhub90-faf83.firebasestorage.app",
-  messagingSenderId: "693714545924",
-  appId: "1:693714545924:web:deb6fff4d23b112ca2f451",
-  measurementId: "G-34G71QNPZM"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // =====================================================================
 // CLOUDINARY CONFIGURATION — used for file uploads (free tier, no card).
-// Fill these in from your Cloudinary dashboard (see setup notes).
+// Load from environment variables. See .env.example for setup instructions.
 // =====================================================================
-const CLOUDINARY_CLOUD_NAME = "jsuoiipz";
-const CLOUDINARY_UPLOAD_PRESET = "ml_default";
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
@@ -355,7 +357,7 @@ function setupSubmitHandler() {
     }
 
     if (mode === "upload" && (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET)) {
-      showAlert("error", "File uploads aren't configured yet — add your Cloudinary cloud name and upload preset at the top of this page's code.");
+      showAlert("error", "File uploads aren't configured yet — add your Cloudinary cloud name and upload preset to your environment variables (see .env.example).");
       return;
     }
 
