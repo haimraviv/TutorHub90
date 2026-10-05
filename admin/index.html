@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — TutorHub90</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex; align-items:center; gap:16px;">
+    <a href="../index.html" class="back-link">← Back to Dashboard</a>
+    <span style="color:#fff; font-weight:700; font-family:'Source Serif 4',serif; font-size:18px;">Admin</span>
+  </div>
+  <div class="session-info">
+    <span id="admin-session-email"></span>
+    <span class="badge-role">ADMIN</span>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <div id="admin-loading" class="empty-state">Loading…</div>
+  <div id="admin-denied" class="hidden alert alert-error" style="margin-bottom:16px;"></div>
+
+  <div id="admin-content" class="hidden">
+    <div class="card" style="margin-bottom:24px;">
+      <div class="section-header"><h2 style="font-size:17px;">Platform Overview</h2></div>
+      <div style="display:flex; gap:32px; flex-wrap:wrap;">
+        <div>
+          <div class="hint">Total Tutors</div>
+          <div style="font-size:26px; font-weight:700; color:var(--navy);" id="stat-tutors">0</div>
+        </div>
+        <div>
+          <div class="hint">Total Students</div>
+          <div style="font-size:26px; font-weight:700; color:var(--navy);" id="stat-students">0</div>
+        </div>
+        <div>
+          <div class="hint">Active Subscriptions</div>
+          <div style="font-size:26px; font-weight:700; color:var(--navy);" id="stat-active-subs">0</div>
+        </div>
+        <div>
+          <div class="hint">Est. Monthly Revenue</div>
+          <div style="font-size:26px; font-weight:700; color:var(--navy);" id="stat-mrr">$0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:24px;">
+      <div class="section-header">
+        <h2 style="font-size:17px;">Tutors</h2>
+        <span class="count" id="tutors-count"></span>
+      </div>
+      <div class="list" id="tutors-list"><div class="empty-state">Loading…</div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">
+        <h2 style="font-size:17px;">Students</h2>
+        <span class="count" id="students-count"></span>
+      </div>
+      <div class="list" id="students-list"><div class="empty-state">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+const firebaseConfig = {
+  apiKey: "AIzaSyAg-Dx8YM8b6QsbQA9Dv-fsE4zk8S0U8vw",
+  authDomain: "tutorhub90-faf83.firebaseapp.com",
+  projectId: "tutorhub90-faf83",
+  storageBucket: "tutorhub90-faf83.firebasestorage.app",
+  messagingSenderId: "693714545924",
+  appId: "1:693714545924:web:deb6fff4d23b112ca2f451",
+  measurementId: "G-34G71QNPZM"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  getFirestore, doc, getDoc, updateDoc, deleteDoc, collection, getDocs, query, where
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = (id) => document.getElementById(id);
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+let currentUser = null;
+let allUsers = [];        // every users/{uid} doc
+let allEnrollments = [];  // every enrollments/{id} doc
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = "../index.html";
+    return;
+  }
+  currentUser = user;
+  $("admin-session-email").textContent = user.email;
+
+  // Admin access is granted by the existence of a Firestore doc at
+  // admins/{uid} — created manually via the Firebase Console (see setup
+  // notes). This is intentionally NOT self-service from the app.
+  const adminSnap = await getDoc(doc(db, "admins", user.uid));
+  $("admin-loading").classList.add("hidden");
+
+  if (!adminSnap.exists()) {
+    $("admin-denied").textContent = "This account doesn't have admin access.";
+    $("admin-denied").classList.remove("hidden");
+    return;
+  }
+
+  $("admin-content").classList.remove("hidden");
+  await loadEverything();
+});
+
+async function loadEverything() {
+  const [usersSnap, enrollSnap] = await Promise.all([
+    getDocs(collection(db, "users")),
+    getDocs(collection(db, "enrollments"))
+  ]);
+  allUsers = usersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  allEnrollments = enrollSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  renderOverview();
+  renderTutors();
+  renderStudents();
+}
+
+function renderOverview() {
+  const tutors = allUsers.filter(u => u.role === "tutor");
+  const students = allUsers.filter(u => u.role === "student");
+  const activeSubs = tutors.filter(t => t.billing?.subscriptionStatus === "active");
+
+  let mrr = 0;
+  activeSubs.forEach(t => {
+    const activeStudentCount = allEnrollments.filter(e => e.tutorId === t.id && e.status === "active").length;
+    const base = t.billing?.basePrice ?? 20;
+    const perStudent = t.billing?.perStudentPrice ?? 2;
+    mrr += base + activeStudentCount * perStudent;
+  });
+
+  $("stat-tutors").textContent = tutors.length;
+  $("stat-students").textContent = students.length;
+  $("stat-active-subs").textContent = activeSubs.length;
+  $("stat-mrr").textContent = `$${mrr.toLocaleString()}`;
+}
+
+function renderTutors() {
+  const listEl = $("tutors-list");
+  const tutors = allUsers.filter(u => u.role === "tutor");
+  $("tutors-count").textContent = `${tutors.length} total`;
+
+  if (tutors.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">No tutors yet.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = tutors.map(t => {
+    const studentCount = allEnrollments.filter(e => e.tutorId === t.id).length;
+    const subStatus = t.billing?.subscriptionStatus || "pending";
+    const disabled = t.disabled === true;
+    return `
+      <div class="list-item" style="flex-wrap:wrap; gap:10px;">
+        <div>
+          <div class="title">${escapeHtml(t.name || t.email)}</div>
+          <div class="meta">${escapeHtml(t.email)} · ${studentCount} student${studentCount === 1 ? "" : "s"}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="status-pill status-${subStatus === "active" ? "active" : "pending"}">${escapeHtml(subStatus)}</span>
+          ${disabled ? `<span class="status-pill status-disabled">suspended</span>` : ""}
+          <button type="button" class="btn btn-ghost btn-small toggle-sub-btn" data-uid="${t.id}" data-current="${subStatus}">
+            ${subStatus === "active" ? "Mark Unpaid" : "Mark Paid"}
+          </button>
+          <button type="button" class="btn btn-ghost btn-small toggle-disable-btn" data-uid="${t.id}" data-current="${disabled}">
+            ${disabled ? "Re-enable" : "Suspend"}
+          </button>
+          <button type="button" class="btn btn-ghost btn-small remove-user-btn" data-uid="${t.id}">Remove</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  wireRowButtons(listEl);
+}
+
+function renderStudents() {
+  const listEl = $("students-list");
+  const students = allUsers.filter(u => u.role === "student");
+  $("students-count").textContent = `${students.length} total`;
+
+  if (students.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">No students yet.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = students.map(s => {
+    const enrollments = allEnrollments.filter(e => e.studentId === s.id);
+    const tutorNames = enrollments.map(e => e.tutorName || e.tutorEmail).join(", ") || "—";
+    const disabled = s.disabled === true;
+    return `
+      <div class="list-item" style="flex-wrap:wrap; gap:10px;">
+        <div>
+          <div class="title">${escapeHtml(s.name || s.email)}</div>
+          <div class="meta">${escapeHtml(s.email)} · Tutors: ${escapeHtml(tutorNames)}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          ${disabled ? `<span class="status-pill status-disabled">suspended</span>` : `<span class="status-pill status-active">active</span>`}
+          <button type="button" class="btn btn-ghost btn-small toggle-disable-btn" data-uid="${s.id}" data-current="${disabled}">
+            ${disabled ? "Re-enable" : "Suspend"}
+          </button>
+          <button type="button" class="btn btn-ghost btn-small remove-user-btn" data-uid="${s.id}">Remove</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  wireRowButtons(listEl);
+}
+
+function wireRowButtons(listEl) {
+  listEl.querySelectorAll(".toggle-sub-btn").forEach(btn => {
+    btn.addEventListener("click", () => toggleSubscription(btn.dataset.uid, btn.dataset.current === "active"));
+  });
+  listEl.querySelectorAll(".toggle-disable-btn").forEach(btn => {
+    btn.addEventListener("click", () => toggleDisabled(btn.dataset.uid, btn.dataset.current === "true"));
+  });
+  listEl.querySelectorAll(".remove-user-btn").forEach(btn => {
+    btn.addEventListener("click", () => removeUser(btn.dataset.uid));
+  });
+}
+
+async function toggleSubscription(uid, isCurrentlyActive) {
+  try {
+    await updateDoc(doc(db, "users", uid), {
+      "billing.subscriptionStatus": isCurrentlyActive ? "pending" : "active"
+    });
+    await loadEverything();
+  } catch (err) {
+    alert(`Couldn't update subscription: ${err.message}`);
+  }
+}
+
+async function toggleDisabled(uid, isCurrentlyDisabled) {
+  try {
+    await updateDoc(doc(db, "users", uid), { disabled: !isCurrentlyDisabled });
+    await loadEverything();
+  } catch (err) {
+    alert(`Couldn't update account: ${err.message}`);
+  }
+}
+
+async function removeUser(uid) {
+  if (!confirm("Remove this user's app data? This deletes their profile from TutorHub90 but does NOT delete their login — do that from the Firebase Console if needed.")) {
+    return;
+  }
+  try {
+    await deleteDoc(doc(db, "users", uid));
+    await loadEverything();
+  } catch (err) {
+    alert(`Couldn't remove user: ${err.message}`);
+  }
+}
+</script>
+</body>
+</html>
